@@ -1,0 +1,304 @@
+## FINAL Project
+
+#### **Installing The Package**
+
+**sf Package**: The "sf" package is a widely used R package for working with geospatial data, which includes spatial data such as points, lines, polygons, and spatial dataframes. The "sf" package is a part of the "tidyverse" ecosystem, which is a collection of R packages for data science and visualization.
+
+The **`install.packages("leaflet")`** command is used in R to install the "leaflet" package, which is an R interface to the Leaflet JavaScript library. Leaflet is a popular open-source library for creating interactive web maps, and the "leaflet" package in R allows you to integrate Leaflet maps into your R-based projects, including R Markdown documents and Shiny applications
+
+The **`install.packages("caret")`** command is used to install the "caret" package in R. "caret" stands for Classification and Regression Training, and it is a comprehensive R package designed to streamline the process of training and evaluating machine learning models. The package provides a unified interface for a wide range of machine learning algorithms, making it easier to work with different models and conduct model selection, hyperparameter tuning, and performance assessment.
+
+---
+---
+---
+
+#### **Setting Work Directory**
+
+```         
+setwd("C:\Users\USER\Desktop\Final Project")
+```
+
+#### Loading Required Library
+
+1.  **sf**: The **`sf`** package provides simple features (sf) for working with geospatial data. It's part of the tidyverse and allows you to work with spatial data in R, handling vector data like points, lines, and polygons.
+
+2.  **leaflet**: The **`leaflet`** package is used for creating interactive web maps in R. It interfaces with the Leaflet JavaScript library and is particularly useful for displaying geographical data in web applications.
+
+3.  **rgdal**: **`rgdal`** is an R interface to the GDAL library, providing capabilities for reading and writing geospatial data in various formats, including vector and raster formats.
+
+4.  **raster**: The **`raster`** package is used for working with raster data, including reading, writing, and performing operations on raster datasets.
+
+5.  **terra**: **`terra`** is another package for working with raster data, offering an alternative to the **`raster`** package with a different design approach.
+
+6.  **dplyr**: The **`dplyr`** package is part of the tidyverse and is used for data manipulation and transformation. It provides a set of functions for filtering, summarizing, arranging, and modifying data frames and tables.
+
+7.  **ggplot2**: **`ggplot2`** is a popular package for creating data visualizations, particularly for creating complex and customized plots using the grammar of graphics.
+
+8.  **rgeos**: The **`rgeos`** package provides an interface to the GEOS library, which offers geometry operations for spatial data, such as buffering, union, and intersection.
+
+9.  **viridis**: The **`viridis`** package provides a set of color palettes designed for data visualization. These palettes are perceptually uniform and suitable for creating informative plots.
+
+10. **rasterVis**: **`rasterVis`** is a package for enhancing the visualization of raster data. It provides methods to create informative and visually appealing plots of raster datasets.
+
+11. **random Forest**: The **`randomForest`** package is used for building random forest models. Random forests are an ensemble learning method for classification and regression tasks, and this package provides functions to create and assess random forest models.
+
+---
+library(sf)      
+library(leaflet) 
+library(rgdal)
+library(raster)
+library(terra)
+library(dplyr)
+library(ggplot2)
+library(rgeos)
+library(viridis)
+library(rasterVis)
+library(randomForest)
+---
+
+#### Loading The Insitu Data (Shape File)
+
+---
+in_situ_data <- st_read("LULC_Crop-Types_In-SituData2021_USP/LULC_Crop-Types_In-SituData2021_USP.shp")
+---
+
+#### Removing the Specific Column from the data
+
+---
+in_situ_data <- in_situ_data %>%
+  select(-data_Other, -data_Photo, -data_UserN, -data_Phone, -data_Subsc, -data_Email, -data_EndTi, -data_meta_, -F17, -F18)
+
+head(in_situ_data)
+---
+
+#### Filtering the Agriculture data Only
+
+---
+insitu_filtered <- in_situ_data %>% filter(data_LULC == 'Agriculture')
+---
+
+#### Defining a custom color palette for the specific class types
+
+---
+color_palette <- colorFactor(
+  palette = c("lightgreen", "yellow", "darkgreen", "cyan", "orange"), 
+  domain = c("Sugarcane", "PaddyRice", "Orchid","Bamboo", "OtherCrop")  
+---
+
+#### Creating Leaflet Map
+
+---
+leaflet() %>%
+  addProviderTiles("Esri.WorldImagery") %>%
+  addCircleMarkers(data = insitu_filtered, 
+                   lng = ~st_coordinates(geometry)[, 1], 
+                   lat = ~st_coordinates(geometry)[, 2], 
+                   popup = ~data_CropT,
+                   color = ~color_palette(data_CropT))
+---
+
+#### Importaing Sentinential Image
+
+---
+blue_band <- raster("T45RVK_20221218T045211_B02_10m.jp2")
+green_band <- raster("T45RVK_20221218T045211_B03_10m.jp2")
+red_band <- raster("T45RVK_20221218T045211_B04_10m.jp2")
+nir_band <- raster("T45RVK_20221218T045211_B08_10m.jp2")
+---
+
+### **Calculating NDVI**
+
+NDVI, or Normalized Difference Vegetation Index, is a widely used vegetation index in remote sensing and geospatial analysis. It quantifies the presence and health of vegetation based on the differences in the reflectance of near-infrared (NIR) and red light in the electromagnetic spectrum. NDVI values typically range from -1 to 1, where higher values indicate healthier and denser vegetation.
+
+**Here's how NDVI is calculated:**
+
+**1. Red Band (B3) and Near-Infrared Band (B4):**
+
+In remote sensing, satellite or aerial sensors capture data in different spectral bands. B3 corresponds to the red band, and B4 corresponds to the near-infrared band.
+
+**2. NDVI Formula:**
+
+NDVI = (NIR - Red) / (NIR + Red)
+
+-   NIR: Reflectance in the near-infrared band (B4)
+
+-   Red: Reflectance in the red band (B3)
+
+**3. Interpretation:**
+
+-   NDVI values typically range from -1 to 1, where negative values represent water bodies, bare soil, or man-made surfaces.
+
+-   Values close to 0 represent barren areas with little or no vegetation.
+
+-   Values between 0 and 1 indicate the presence of vegetation, with higher values indicating denser and healthier vegetation.
+
+-   Fully vegetated areas often have NDVI values around 0.2 to 0.9.
+
+**NDVI is a valuable tool for various applications, including:**
+
+1\. Vegetation Monitoring: NDVI is used to monitor changes in vegetation health, growth, and cover over time.
+
+2\. Agriculture: Farmers and agronomists use NDVI to assess crop health, identify stress, and optimize irrigation and fertilizer application.
+
+3\. Land Cover Classification: NDVI is used in land cover classification to distinguish between different land cover types, including forests, crops, and urban areas.
+
+4\. Ecosystem Analysis: Ecologists and environmental scientists use NDVI to study ecosystems, track deforestation, and monitor biodiversity.
+
+5\. Climate Change: NDVI is used to assess the impact of climate change on vegetation and to study trends in vegetation dynamics.
+
+6\. Forestry: It's used for forest management and monitoring forest health.
+
+To calculate NDVI in R using raster data, you can use the formula mentioned above, and packages like \`raster\` or \`terra\` provide functions to perform these calculations on multi-band satellite imagery. The result is a raster with NDVI values for each pixel, which can be further analyzed and visualized.
+
+---
+ndvi_funtion <- function(red_band, nir_band) {
+  ndvi <- (nir_band - red_band) / (nir_band + red_band)
+  return(ndvi)
+}
+
+ndvi <- ndvi_funtion(red_band , nir_band)
+---
+
+#### **Plotting NDVI**
+
+---
+gplot(ndvi) +
+  geom_raster(aes(x = x, y = y, fill = value)) +
+  coord_quickmap() +
+  ggtitle("NDVI") +
+  xlab("Easting") +
+  ylab("Northing") +
+  theme_classic() +   					   
+  theme(plot.title = element_text(hjust = 0.5),             
+        text = element_text(size=15),		       	    
+        axis.text.x = element_text(angle = 90, hjust = 1)) 
+---
+
+#### **Projecting Lat Long to Projected Coordinate System**
+
+---
+crs_target <- st_crs("+init=EPSG:32645")
+
+insitu_filtered_projected <- st_transform(insitu_filtered, crs_target)
+---
+
+#### **Extracting NDVI Value to Insitu Data**
+
+---
+ndvi_values <- raster::extract(ndvi, insitu_filtered_projected)
+---
+
+#### **Adding the extracted NDVI values to the insitu_filtered_projected data**
+
+---
+insitu_merged <- cbind(insitu_filtered_projected, NDVI = ndvi_values)
+head(insitu_merged)
+---
+
+#### **Remove rows with NA values in the NDVI column**
+
+---
+insitu_merged <- insitu_merged[!is.na(insitu_merged$NDVI), ]head(ins)
+---
+
+#### **Define the proportion for the training data (e.g., 70% for training, 30% for testing)**
+
+---
+train_prop <- 0.7
+---
+
+#### **Set a seed for reproducibility**
+
+---
+set.seed(123)
+---
+
+#### **Create an index for splitting the data**
+
+---
+train_index <- sample(1:nrow(insitu_merged), size = round(train_prop * nrow(insitu_merged)))
+---
+
+#### **Split the data into training and testing sets**
+
+---
+train_data <- insitu_merged[train_index, ] test_data <- insitu_merged[-train_index, ]  train_data$data_CropT <- as.factor(train_data$data_CropT)  rf_model <- randomForest(data_CropT ~ NDVI, data = train_data, ntree = 100) 
+---
+
+#### **Make predictions on the test data**
+
+---
+rf_predictions <- predict(rf_model, test_data)  confusion_matrix <- table(Actual = test_data$data_CropT, Predicted = rf_predictions) print(confusion_matrix)
+---
+
+#### **Calculating Accuracy**
+
+------------------------------------------------------------------------
+
+accuracy \<- sum(diag(confusion_matrix)) / sum(confusion_matrix) print(paste("Accuracy:", accuracy))
+
+------------------------------------------------------------------------
+
+**Defining the class names**
+
+---
+class_names <- c("Bamboo", "Orchid", "PaddyRice", "Sugarcane", "othercrop") 
+---
+
+#### **Creating empty matrices to store precision, recall, and F1 scores**
+
+---
+precision_scores <- matrix(0, nrow = length(class_names), ncol = 1) recall_scores <- matrix(0, nrow = length(class_names), ncol = 1) f1_scores <- matrix(0, nrow = length(class_names), ncol = 1) 
+---
+
+#### **Calculate precision, recall, and F1 scores for each class**
+
+---
+for (i in 1:length(class_names)) {   class_name <- class_names[i]   true_positive <- confusion_matrix[class_name, class_name]   false_positive <- sum(confusion_matrix[, class_name]) - true_positive   false_negative <- sum(confusion_matrix[class_name, ]) - true_positive   precision <- true_positive / (true_positive + false_positive)   recall <- true_positive / (true_positive + false_negative)   f1_score <- 2 * (precision * recall) / (precision + recall)
+---
+
+#### **Store scores in respective matrices**
+
+---
+  precision_scores[i] <- precision   recall_scores[i] <- recall   f1_scores[i] <- f1_score }
+---
+
+**Initialize matrices to store producer accuracy (PA) and user accuracy**
+
+---
+PA_scores <- matrix(0, nrow = length(class_names), ncol = 1) UA_scores <- matrix(0, nrow = length(class_names), ncol = 1) 
+---
+
+#### 
+
+#### **Calculate producer accuracy and user accuracy for each class**
+
+---
+for (i in 1:length(class_names)) {   class_name <- class_names[i]
+---
+
+#### **Calculate Producer Accuracy (PA)**
+
+---
+PA <- confusion_matrix[class_name, class_name] / sum(confusion_matrix[class_name, ])   PA_scores[i] <- PA
+---
+
+#### **Calculate User Accuracy (UA)**
+
+---
+ UA <- confusion_matrix[class_name, class_name] / sum(confusion_matrix[, class_name])   UA_scores[i] <- UA
+---
+
+#### **Create a data frame to display the scores**
+
+---
+accuracy_df <- data.frame(Class = class_names, Producer_Accuracy = PA_scores, User_Accuracy = UA_scores)
+---
+
+#### **Display the producer and user accuracy scores**
+
+---
+accuracy_df
+---
+
+#### 
